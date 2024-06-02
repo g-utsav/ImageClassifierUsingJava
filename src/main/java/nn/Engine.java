@@ -11,8 +11,16 @@ public class Engine {
 	private LinkedList<Matrix> weights = new LinkedList<Matrix>();
 	private LinkedList<Matrix> biases = new LinkedList<Matrix>();
 	
-	Matrix runForewards(Matrix input) {
+	private LossFunction lossFunction = LossFunction.CROSSENTROPY;
+	
+	private boolean storeInputError = false;
+	
+	public BatchResult runForewards(Matrix input) {
+		
+		BatchResult batchResult = new BatchResult();
 		Matrix output = input;
+		
+		batchResult.addIo(output);
 		
 		int denseIndex = 0;
 		for(var t : transforms) {
@@ -28,9 +36,55 @@ public class Engine {
 			}else if(t == Transform.SOFTMAX) {
 				output = output.softMax();
 			}
+			
+			batchResult.addIo(output);
 		}
 		
-		return output;
+		return batchResult;
+	}
+	
+	public void runBackWard(BatchResult batchResult, Matrix expected) {
+		var transformsIt = transforms.descendingIterator();
+		
+		if(lossFunction != LossFunction.CROSSENTROPY || transforms.getLast() != Transform.SOFTMAX) {
+			throw new UnsupportedOperationException("Loss function must be Cross Entropy and last Transform should be SoftMax");
+		}
+		
+		var ioIt = batchResult.getIo().descendingIterator();
+		var weightIt = weights.descendingIterator();
+		Matrix softMaxOutput = ioIt.next();
+		Matrix error = softMaxOutput.apply((index, value) -> value - expected.get(index));
+		
+		while(transformsIt.hasNext()) {
+			Transform transform = transformsIt.next();
+			Matrix input = ioIt.next();
+			
+			switch (transform) {
+				case DENSE: {
+					Matrix weight = weightIt.next();
+					if(weightIt.hasNext() || storeInputError) {
+						error = weight.transpose().multiply(error);						
+					}
+					break;
+				}
+				case RELU : {
+					error = error.apply((index, value) -> input.get(index) > 0 ? value : 0);
+					break;
+				}
+				case SOFTMAX : {
+					break;
+				}
+				default:
+					throw new UnsupportedOperationException("Unexpected value: " + transform);
+			}
+			
+//			System.out.println(transform);
+		}
+		
+		if(storeInputError) {
+			batchResult.setInputError(error);
+		}
+		
 	}
 	
 	public void add(Transform transform, double... params) {
@@ -51,6 +105,16 @@ public class Engine {
 		transforms.add(transform);
 	}
 	
+	
+	
+	public boolean isStoreInputError() {
+		return storeInputError;
+	}
+
+	public void setStoreInputError(boolean storeInputError) {
+		this.storeInputError = storeInputError;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();

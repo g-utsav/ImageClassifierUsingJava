@@ -5,8 +5,8 @@ import java.util.Objects;
 
 public class Matrix {
 	
-	private static final String NUMBER_FORMAT = "%+12.5f";
-	private static final double TOLERANCE = 0.000001;
+	private static final String NUMBER_FORMAT = "%+12.7f";
+	private  double tolerance = 0.000001;
 	private int rows;
 	private int cols;
 	private double[] a;
@@ -229,10 +229,14 @@ public class Matrix {
 		Matrix other = (Matrix) obj;
 		
 		for(int i=0; i<a.length; i++) {
-			if(Math.abs(a[i]-other.a[i]) > TOLERANCE) return false;
+			if(Math.abs(a[i]-other.a[i]) > tolerance) return false;
 		}
 		
 		return true;
+	}
+	
+	public void setTolerance(double tolerance) {
+		this.tolerance = tolerance;
 	}
 
 	public String toString() {
