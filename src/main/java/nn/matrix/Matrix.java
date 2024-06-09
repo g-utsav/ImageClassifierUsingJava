@@ -1,10 +1,13 @@
 package nn.matrix;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class Matrix {
-	
+public class Matrix implements Serializable{
+
+	private static final long serialVersionUID = 1L;
+
 	private static final String NUMBER_FORMAT = "%+12.7f";
 	private  double tolerance = 0.000001;
 	private int rows;
@@ -313,5 +316,9 @@ public class Matrix {
 		}else {
 			return rows +"x"+ cols;
 		}
+	}
+
+	public double[] get() {
+		return a;
 	}
 }

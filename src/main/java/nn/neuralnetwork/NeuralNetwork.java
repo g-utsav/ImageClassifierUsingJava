@@ -1,5 +1,11 @@
 package nn.neuralnetwork;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -9,7 +15,9 @@ import nn.loader.Loader;
 import nn.loader.MetaData;
 import nn.matrix.Matrix;
 
-public class NeuralNetwork {
+public class NeuralNetwork implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 
 	private Engine engine;
 	
@@ -18,8 +26,8 @@ public class NeuralNetwork {
 	private double finalLearingRate = 0.001; 
 	private int threads = 2;
 
-	private double learningRate;
-	private Object lock = new Object();
+	transient private double learningRate;
+	transient private Object lock = new Object();
 	
 	public NeuralNetwork() {
 		this.engine = new Engine();
@@ -46,13 +54,21 @@ public class NeuralNetwork {
 		this.epochs = epochs;
 	}
 	
+	public double[] predict(double[] inputData) {
+		Matrix input = new Matrix(inputData.length, 1, i -> inputData[i]);
+		
+		BatchResult batchResult = engine.runForewards(input);
+		
+		return batchResult.getOutput().get();
+	}
+	
 	public void fit(Loader trainLoader , Loader evalLoader) {
 		
 		learningRate = initialLearningRate;
 		
 		for(int epoch = 0; epoch < epochs; epoch++) {
 			
-			System.out.printf("Epoch %3d ",epoch);
+			System.out.printf("Epoch %3d ",epoch+1);
 			
 			runEpoch(trainLoader, true);
 			
@@ -114,7 +130,8 @@ public class NeuralNetwork {
 		MetaData metaData = loader.getMetaData();
 		int numberBatches = metaData.getNumberBatches();
 		
-		var executor = Executors.newFixedThreadPool(threads);
+//		var executor = Executors.newFixedThreadPool(threads);
+		var executor = Executors.newVirtualThreadPerTaskExecutor();
 		
 		for(int i=0; i<numberBatches; i++) {
 			batches.add(executor.submit(()->runBatch(loader, trainingMode)));
@@ -126,7 +143,7 @@ public class NeuralNetwork {
 	}
 
 	private BatchResult runBatch(Loader loader, boolean trainingMode) {
-		MetaData metaData = loader.open();
+		MetaData metaData = loader.getMetaData();
 		
 		BatchData batchData = loader.readBatch();
 		
@@ -167,6 +184,30 @@ public class NeuralNetwork {
 		
 		return sb.toString();
 	}
+
+	public boolean save(String file) {
+		try(var ds = new ObjectOutputStream(new FileOutputStream(file))){
+			ds.writeObject(this);
+		}catch(IOException e) {
+			System.err.println("Unable to save to "+file);
+			return false;
+		}
+		return true;
+	}
 	
+	public static NeuralNetwork load(String file) {
+		NeuralNetwork neuralNetwork = null;
+		try(var ds = new ObjectInputStream(new FileInputStream(file))){
+			neuralNetwork = (NeuralNetwork)ds.readObject();
+		}catch(Exception e) {
+			System.err.println("Unable to load from "+file);
+		}
+		return neuralNetwork;
+	}
 	
+	public Object readResolve() {
+		System.out.println("Initilazing Lock.");
+		this.lock = new Object();
+		return this;
+	}
 }

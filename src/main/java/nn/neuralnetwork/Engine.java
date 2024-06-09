@@ -1,11 +1,14 @@
 package nn.neuralnetwork;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Random;
 
 import nn.matrix.Matrix;
 
-public class Engine {
+public class Engine implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 
 	private LinkedList<Transform> transforms = new LinkedList<Transform>();
 	private LinkedList<Matrix> weights = new LinkedList<Matrix>();
@@ -18,6 +21,10 @@ public class Engine {
 	
 	public void setScaleInitialWeights(double scale) {
 		this.scaleInitialWeights = scale;
+		
+		if(weights.size() != 0) {
+			throw new RuntimeException("Must call setScaleInitialWeights before adding transforms!.");
+		}
 	}
 	
 	public void evaluate(BatchResult batchResult, Matrix expected) {
