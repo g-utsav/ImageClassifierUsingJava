@@ -1,67 +1,34 @@
 package nn;
 
-/**
- * INPUT	AND		OR		XOR		NOR		NAND		XNOR	
- * 00		0		0		0		1		1			1
- * 01		0		1		1		0		1			0
- * 10		0		1		1		0		1			0
- * 11		1		1		0		0		0			1
- *
- */
-public class App 
-{
-	public static double neuron(double[] x, double[] w, double b) {
-        double z = 0;
-        
-        for(int i=0; i<x.length; i++) {
-        	z += x[i]*w[i];
-        }
-        
-        z += b;
-        
-        return activation(z);
+import nn.loader.Loader;
+import nn.loader.test.TestLoader;
+import nn.neuralnetwork.NeuralNetwork;
+import nn.neuralnetwork.Transform;
+
+public class App {
+
+	public static void main(String[] args) {
+		int inputRows = 100;	
+		int outputRows = 3;
+		
+		NeuralNetwork neuralNetwork = new NeuralNetwork();
+		neuralNetwork.add(Transform.DENSE, 100, inputRows);
+		neuralNetwork.add(Transform.RELU);
+		neuralNetwork.add(Transform.DENSE, 100);
+		neuralNetwork.add(Transform.RELU);
+		neuralNetwork.add(Transform.DENSE, outputRows);
+		neuralNetwork.add(Transform.SOFTMAX);
+		
+		neuralNetwork.setEpochs(20);
+		neuralNetwork.setLearningRate(0.02, 0.001);
+		neuralNetwork.setThreads(20);
+		System.out.println(neuralNetwork);
+		
+		Loader trainLoader = new TestLoader(60_000, 32);
+		Loader testLoader = new TestLoader(10_000, 32);
+		
+		neuralNetwork.fit(trainLoader, testLoader);
+		
 	}
 	
-	public static double activation(double z) {
-		return z>0? 1.0 : 0.0;
-	}
-	
-	static double and(double x1, double x2) {
-		return neuron(new double[] {x1,x2}, new double[] {1,1}, -1);
-	}
-	
-	static double or(double x1, double x2) {
-		return neuron(new double[] {x1,x2}, new double[] {1,1}, 0);
-	}
-	
-	static double nor(double x1, double x2) {
-		return neuron(new double[] {x1,x2}, new double[] {-1,-1}, 1);
-	}
-	
-	static double nand(double x1, double x2) {
-		return neuron(new double[] {x1,x2}, new double[] {-1,-1}, 2);
-	}
-	
-	static double xnor(double x1, double x2) {
-		return or(and(x1,x2),nor(x1,x2));
-	}
-	
-	static double xor(double x1, double x2) {
-		return and(or(x1,x2),nand(x1,x2));
-	}
-	
-    public static void main( String[] args )
-    {
-    	System.out.println("x1 x2    Output");
-        for(int i=0; i<4; i++) {
-        	double x1 = i/2;
-        	double x2 = i%2;
-        	
-        	double output = xnor(x1,x2);
-        	
-        	System.out.printf("%d  %d \t  %d\n",(int)x1,(int)x2,(int)output);
-        	
-        }
-    	
-    }
 }

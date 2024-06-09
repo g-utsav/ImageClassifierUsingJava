@@ -1,4 +1,4 @@
-package nn;
+package nn.neuralnetwork;
 
 import java.util.function.Function;
 
@@ -36,6 +36,26 @@ public class Approximator {
 //			if(col == input.getCols()-1) {
 //				System.out.println();
 //			}
+		});
+		
+		return result;
+	}
+	
+	
+	public static Matrix wightGradient(Matrix weights, Function<Matrix, Matrix> transform) {
+		final double INC = 0.0000001;
+		
+		Matrix loss1 = transform.apply(weights);
+		
+		Matrix result = new Matrix(weights.getRows(), weights.getCols(), i->0);
+		
+		weights.forEach((row, col, index, value)->{
+			Matrix incremented = weights.addIncrement(row, col, INC);
+			Matrix loss2 = transform.apply(incremented);
+			
+			double rate = (loss2.get(0) - loss1.get(0))/INC;
+			
+			result.set(row, col, rate);
 		});
 		
 		return result;

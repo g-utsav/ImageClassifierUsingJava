@@ -7,10 +7,107 @@ import java.util.Random;
 import org.junit.Test;
 
 import nn.matrix.Matrix;
+import nn.neuralnetwork.Approximator;
+import nn.neuralnetwork.BatchResult;
+import nn.neuralnetwork.Engine;
+import nn.neuralnetwork.LossFunctions;
+import nn.neuralnetwork.RunningAverages;
+import nn.neuralnetwork.Transform;
+import nn.neuralnetwork.Util;
 
 public class NeuralNetworkTest {
 
 	private Random random = new Random();
+	
+	@Test
+	public void testTrainEngin() {
+		int inputRows = 500;
+		int cols = 32;
+		int outputRows = 10;
+		
+		
+		Engine engine = new Engine();
+		engine.add(Transform.DENSE, 100, inputRows);
+		engine.add(Transform.RELU, null);
+		engine.add(Transform.DENSE, outputRows);
+		engine.add(Transform.SOFTMAX);
+		
+		RunningAverages runningAverages = new RunningAverages(2, 2, (callNumber, averages) -> {
+//			assertTrue(averages[0] < 6);
+			System.out.printf("%d.  Loss : %.3f  -- Percent Correct : %.2f \n",callNumber, averages[0], averages[1]);
+		});
+		
+//		System.exit(0);
+		double initialLearningRate = 0.02;
+		double learningRate = initialLearningRate;
+		double iterations = 20;
+		for(int i=0; i<iterations; i++) {
+//			Matrix input = Util.generateInputMatrix(inputRows, cols);
+//			Matrix expected = Util.generateTrainableExpectedMatrix(outputRows, input);
+			
+			var tm = Util.generateTrainingMatrices(inputRows, outputRows, cols);
+			var input = tm.getInput();
+			var expected = tm.getOutpur();
+			
+			BatchResult batchResult = engine.runForewards(input);
+	//		engine.evaluate(batchResult, expected);
+	//		double loss1 = batchResult.getLoss();
+		
+			engine.runBackWard(batchResult, expected);	
+			engine.adjust(batchResult, learningRate);
+			
+	//		batchResult = engine.runForewards(input);
+			engine.evaluate(batchResult, expected);
+			
+			
+			runningAverages.add(batchResult.getLoss(), batchResult.getPercentCorrect());
+//			double loss2 = batchResult.getLoss();
+//			double percentCorrect = batchResult.getPercentCorrect();
+//			
+//			System.out.printf("Loss : %.3f, %% Correct : %.2f \n",loss2, percentCorrect);
+			
+			learningRate -= (initialLearningRate/iterations);
+		}
+//		System.out.println(loss1 + " " + loss2);
+//		System.out.println(percentCorrect);
+		
+	}
+	
+	@Test
+	public void testWeightGradient() {
+		int inputRows = 4;
+		int outputRows = 5;
+		
+		Matrix weight = new Matrix(outputRows, inputRows, i->random.nextGaussian());
+		Matrix input = Util.generateInputMatrix(inputRows, 1);
+		Matrix expected  = Util.generateExpectedMatrix(outputRows, 1);
+		
+		Matrix output = weight.multiply(input).softMax();
+		
+		Matrix loss = LossFunctions.crossEntropy(expected, output);
+				
+		Matrix calculatedError = output.apply((index, value) -> value - expected.get(index));
+		
+		Matrix calculatedWeightGraidient = calculatedError.multiply(input.transpose());
+		
+		Matrix approximatedWeightGraidents = Approximator.wightGradient(weight, w ->{
+			Matrix out = w.multiply(input).softMax();
+			return LossFunctions.crossEntropy(expected, out);
+		});
+		
+		calculatedWeightGraidient.setTolerance(0.0001);
+		
+		assertTrue(calculatedWeightGraidient.equals(approximatedWeightGraidents));
+		
+//		System.out.println(input);
+//		System.out.println(weight);
+//		System.out.println(output);
+//		System.out.println(expected);
+//		System.out.println(loss);
+//		System.out.println(calculatedError);
+//		System.out.println(calculatedWeightGraidient);
+//		System.out.println(approximatedWeightGraidents);
+	}
 	
 	@Test
 	public void testEngine() {

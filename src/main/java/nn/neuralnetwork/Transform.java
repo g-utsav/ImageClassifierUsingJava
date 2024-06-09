@@ -1,4 +1,4 @@
-package nn;
+package nn.neuralnetwork;
 
 public enum Transform {
 

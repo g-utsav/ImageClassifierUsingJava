@@ -54,6 +54,24 @@ public class Matrix {
 		}
 	}
 	
+	public Matrix(int rows, int cols, double[] values) {
+		this.rows = rows;
+		this.cols = cols;
+		
+		Matrix tmp = new Matrix(cols, rows);
+		tmp.a = values;
+		Matrix transposed = tmp.transpose();
+		a = transposed.a;
+	}
+
+	public double sum() {
+		double sum = 0;
+		for(var v : a) {
+			sum += v;
+		}
+		return sum;
+	}
+	
 	public Matrix apply(ValueProducer producer) {
 		var result = new Matrix(rows, cols);
 		
@@ -152,7 +170,14 @@ public class Matrix {
 		}
 		return this;
 	}
-		
+	
+	public Matrix modify(IndexValueProducer producer) {
+		for(int i=0; i<a.length; i++) {
+			a[i] = producer.producer(i,a[i]);
+		}
+		return this;
+	}
+	
 	public void forEach(IndexValueConsumer consumer) {
 		for(int i=0; i<a.length; i++) {
 			consumer.consume(i, a[i]);
@@ -175,6 +200,23 @@ public class Matrix {
 				consumer.consume(row, col, index, a[index++]);
 			}
 		}
+	}
+	
+	public Matrix getGreatestRowNumbers() {
+		Matrix result = new Matrix(1, cols);
+		double[] greatest = new double[cols];
+		
+		for(int i=0; i<cols; i++) {
+			greatest[i] = Double.MIN_VALUE;
+		}
+		forEach((row, col, value) -> {
+			if(value > greatest[col]) {
+				greatest[col] = value;
+				result.a[col] = row;
+			}
+		});
+		
+		return result;
 	}
 	
 	public Matrix addIncrement(int row, int col, double increment) {
@@ -233,6 +275,16 @@ public class Matrix {
 		}
 		
 		return true;
+	}
+	
+	public Matrix averageColumn() {
+		Matrix result = new Matrix(rows, 1);
+		
+		forEach((row, col, index, value) -> {
+			result.a[row] += value/cols;
+		});
+		
+		return result;
 	}
 	
 	public void setTolerance(double tolerance) {

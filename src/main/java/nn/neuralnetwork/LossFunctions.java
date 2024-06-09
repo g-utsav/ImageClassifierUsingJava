@@ -1,4 +1,4 @@
-package nn;
+package nn.neuralnetwork;
 
 import nn.matrix.Matrix;
 
